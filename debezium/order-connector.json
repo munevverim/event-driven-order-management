@@ -1,0 +1,20 @@
+{
+  "name": "order-postgres-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "order-postgres",
+    "database.port": "5432",
+    "database.user": "order_user",
+    "database.password": "order_pass",
+    "database.dbname": "order_db",
+    "database.server.name": "order-service",
+    "topic.prefix": "order-service",
+    "plugin.name": "pgoutput",
+    "slot.name": "order_slot",
+    "publication.name": "order_publication",
+    "table.include.list": "public.outbox",
+    "snapshot.mode": "initial",
+    "decimal.handling.mode": "double",
+    "tombstones.on.delete": "false"
+  }
+}

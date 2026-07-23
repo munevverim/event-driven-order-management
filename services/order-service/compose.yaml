@@ -27,6 +27,18 @@ services:
     volumes:
       - inventory_postgres_data:/var/lib/postgresql/data
 
+  payment-postgres:
+    image: postgres:16
+    container_name: payment-postgres
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: payment_user
+      POSTGRES_PASSWORD: payment_pass
+    ports:
+      - "5437:5432"
+    volumes:
+      - payment_postgres_data:/var/lib/postgresql/data
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
     container_name: zookeeper
@@ -67,6 +79,37 @@ services:
       OFFSET_STORAGE_TOPIC: order_connect_offsets
       STATUS_STORAGE_TOPIC: order_connect_statuses
 
+  prometheus:
+    image: prom/prometheus:v2.51.1
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+
+  grafana:
+    image: grafana/grafana:10.4.1
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ../../monitoring/grafana/provisioning/datasources/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+    depends_on:
+      - prometheus
+      - loki
+
 volumes:
   order_postgres_data:
   inventory_postgres_data:
+  payment_postgres_data:

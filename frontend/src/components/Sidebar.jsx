@@ -1,5 +1,4 @@
-import React from 'react';
-import { ShoppingCart, Package, RefreshCw, BarChart2 } from 'lucide-react';
+import { ShoppingCart, Package, RefreshCw, BarChart2, CreditCard, Bell } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab }) {
   return (
@@ -22,6 +21,22 @@ export default function Sidebar({ activeTab, setActiveTab }) {
           >
             <BarChart2 className="w-5 h-5" />
             Kontrol Paneli
+          </button>
+
+          <button
+            onClick={() => setActiveTab('payments')}
+            className={`nav-item ${activeTab === 'payments' ? 'nav-item-active' : ''}`}
+          >
+            <CreditCard className="w-5 h-5" />
+            Ödeme Yönetimi
+          </button>
+
+          <button
+            onClick={() => setActiveTab('notifications')}
+            className={`nav-item ${activeTab === 'notifications' ? 'nav-item-active' : ''}`}
+          >
+            <Bell className="w-5 h-5" />
+            Bildirimler
           </button>
         </nav>
       </div>

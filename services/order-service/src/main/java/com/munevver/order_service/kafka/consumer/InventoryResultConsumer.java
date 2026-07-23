@@ -28,8 +28,7 @@ public class InventoryResultConsumer {
             log.info("Parsed inventory result: {}", result);
 
             if ("RESERVED".equals(result.status())) {
-                orderService.updateOrderStatus(result.orderId(), OrderStatus.PAID);
-                log.info("Order status updated to PAID for order ID: {}", result.orderId());
+                log.info("Inventory reserved for order ID: {}. Waiting for payment...", result.orderId());
             } else if ("FAILED".equals(result.status())) {
                 orderService.updateOrderStatus(result.orderId(), OrderStatus.REJECTED);
                 log.info("Order status updated to REJECTED for order ID: {}", result.orderId());

@@ -6,6 +6,8 @@ import Sidebar from './components/Sidebar';
 import InventoryStatus from './components/InventoryStatus';
 import ProductCatalog from './components/ProductCatalog';
 import OrderHistory from './components/OrderHistory';
+import NotificationCenter from './components/NotificationCenter';
+import PaymentManagement from './components/PaymentManagement';
 import { RefreshCw } from 'lucide-react';
 import './App.css';
 
@@ -14,11 +16,47 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [lastRefreshed, setLastRefreshed] = useState(new Date().toLocaleTimeString());
 
+  // Local state for payment and notification services
+  const [balances, setBalances] = useState([]);
+  const [paymentHistory, setPaymentHistory] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+
+  const fetchPaymentsData = async () => {
+    try {
+      const resBal = await fetch('http://localhost:8084/payments/balances');
+      if (resBal.ok) {
+        const dataBal = await resBal.json();
+        setBalances(dataBal);
+      }
+      const resHist = await fetch('http://localhost:8084/payments/history');
+      if (resHist.ok) {
+        const dataHist = await resHist.json();
+        setPaymentHistory(dataHist);
+      }
+    } catch (err) {
+      console.warn("Could not fetch payment data (is payment-service running?):", err);
+    }
+  };
+
+  const fetchNotificationsData = async () => {
+    try {
+      const res = await fetch('http://localhost:8085/notifications');
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data);
+      }
+    } catch (err) {
+      console.warn("Could not fetch notification data (is notification-service running?):", err);
+    }
+  };
+
   // Periyodik olarak verileri Kafka CDC & Saga akışından çek
   useEffect(() => {
     const loadData = () => {
       dispatch(fetchInventory());
       dispatch(fetchOrders());
+      fetchPaymentsData();
+      fetchNotificationsData();
       setLastRefreshed(new Date().toLocaleTimeString());
     };
 
@@ -31,6 +69,8 @@ function App() {
   const handleManualRefresh = () => {
     dispatch(fetchInventory());
     dispatch(fetchOrders());
+    fetchPaymentsData();
+    fetchNotificationsData();
     setLastRefreshed(new Date().toLocaleTimeString());
   };
 
@@ -66,24 +106,36 @@ function App() {
           </div>
         </header>
 
-        {/* Canlı Envanter Durumu */}
-        <section>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1.25rem', color: 'white' }}>
-            Canlı Envanter Seviyeleri
-          </h2>
-          <InventoryStatus />
-        </section>
+        {activeTab === 'dashboard' && (
+          <>
+            {/* Canlı Envanter Durumu */}
+            <section>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1.25rem', color: 'white' }}>
+                Canlı Envanter Seviyeleri
+              </h2>
+              <InventoryStatus />
+            </section>
 
-        {/* Sipariş Formu ve Sipariş Takip Paneli */}
-        <div className="grid-main-layout">
-          <section>
-            <ProductCatalog />
-          </section>
+            {/* Sipariş Formu ve Sipariş Takip Paneli */}
+            <div className="grid-main-layout">
+              <section>
+                <ProductCatalog />
+              </section>
 
-          <section style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '500px' }}>
-            <OrderHistory />
-          </section>
-        </div>
+              <section style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '500px' }}>
+                <OrderHistory />
+              </section>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'payments' && (
+          <PaymentManagement balances={balances} history={paymentHistory} loading={false} />
+        )}
+
+        {activeTab === 'notifications' && (
+          <NotificationCenter notifications={notifications} loading={false} />
+        )}
       </main>
     </div>
   );

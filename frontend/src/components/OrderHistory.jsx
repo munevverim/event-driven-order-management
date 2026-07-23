@@ -25,6 +25,12 @@ export default function OrderHistory() {
             <XCircle className="w-3 h-3" /> İPTAL (SAGA REJECTED)
           </span>
         );
+      case 'PAYMENT_FAILED':
+        return (
+          <span className="badge badge-danger">
+            <XCircle className="w-3 h-3" /> ÖDEME BAŞARISIZ (SAGA FAILED)
+          </span>
+        );
       default:
         return <span className="badge badge-pending">{status}</span>;
     }

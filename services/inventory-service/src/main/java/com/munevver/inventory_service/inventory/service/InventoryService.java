@@ -41,14 +41,14 @@ public class InventoryService {
 
         if (inventory == null) {
             log.warn("Product inventory not found: {}", payload.productId());
-            sendResult(payload.id(), "FAILED", "Ürün envanteri bulunamadı");
+            sendResult(payload, "FAILED", "Ürün envanteri bulunamadı");
             return;
         }
 
         if (inventory.getStockQuantity() < payload.quantity()) {
             log.warn("Insufficient stock for product: {}. Available: {}, Required: {}",
                     payload.productId(), inventory.getStockQuantity(), payload.quantity());
-            sendResult(payload.id(), "FAILED", "Yetersiz stok");
+            sendResult(payload, "FAILED", "Yetersiz stok");
             return;
         }
 
@@ -57,12 +57,47 @@ public class InventoryService {
         inventoryRepository.save(inventory);
         log.info("Inventory reserved successfully. New stock: {}", inventory.getStockQuantity());
 
-        sendResult(payload.id(), "RESERVED", "Stok başarıyla düşüldü");
+        sendResult(payload, "RESERVED", "Stok başarıyla düşüldü");
     }
 
-    private void sendResult(Long orderId, String status, String reason) {
-        InventoryResultEvent result = new InventoryResultEvent(orderId, status, reason);
+    @Transactional
+    public void rollbackStock(Long productId, Integer quantity, Long orderId) {
+        log.info("Rolling back stock for product: {}, quantity: {}, order ID: {}", productId, quantity, orderId);
+
+        String processedKey = "rollback-" + orderId;
+        if (processedEventRepository.existsById(processedKey)) {
+            log.warn("Duplicate rollback detected for order ID: {}. Skipping.", orderId);
+            return;
+        }
+
+        // Olayı işlendi olarak kaydet
+        processedEventRepository.save(new ProcessedEvent(processedKey, LocalDateTime.now()));
+
+        Inventory inventory = inventoryRepository.findByProductId(productId)
+                .orElse(null);
+
+        if (inventory == null) {
+            log.error("Product inventory not found for rollback! Product ID: {}", productId);
+            return;
+        }
+
+        // Stok iade et
+        inventory.setStockQuantity(inventory.getStockQuantity() + quantity);
+        inventoryRepository.save(inventory);
+        log.info("Stock successfully rolled back. New stock: {}", inventory.getStockQuantity());
+    }
+
+    private void sendResult(OrderCreatedPayload payload, String status, String reason) {
+        InventoryResultEvent result = new InventoryResultEvent(
+                payload.id(),
+                payload.userId(),
+                payload.productId(),
+                payload.quantity(),
+                payload.totalPrice(),
+                status,
+                reason
+        );
         log.info("Sending inventory check result to Kafka: {}", result);
-        kafkaTemplate.send("inventory-events", orderId.toString(), result);
+        kafkaTemplate.send("inventory-events", payload.id().toString(), result);
     }
 }
